@@ -1,0 +1,39 @@
+name: house-rules
+# The checks behind CONTRIBUTING.md, called by every Ninsei Labs repository on pull requests and on pushes
+# to main. They read only what a change adds (the title, the description, the commit messages), so history
+# older than the rules does not fail a change. Pull request text reaches the script through env, never into
+# its source.
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Commit form, no tool attribution
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.event.after }}
+        run: |
+          form='^((feat|fix|docs|test|refactor|perf|build|ci|style|chore|revert)(\([^()]+\))?!?: \S|Merge |Revert ")'
+          attrib='^co-authored-by:|generated with \['
+          if [ "$BASE" = 0000000000000000000000000000000000000000 ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            # A new branch or a forced push: there is no earlier tip to compare with, so the last commit alone.
+            msgs() { git log -1 --format="$1" "$HEAD"; }
+          else
+            msgs() { git log --format="$1" "$BASE..$HEAD"; }
+          fi
+          fail=0
+          say() { echo "::error::$1"; fail=1; }
+          if [ -n "$TITLE" ] && ! printf '%s\n' "$TITLE" | grep -P "$form" >/dev/null; then say "the pull request's title is not type(scope): summary"; fi
+          if msgs %s | grep -vP "$form"; then say "a commit subject is not type(scope): summary"; fi
+          if { msgs %B; printf '%s\n' "$BODY"; } | grep -niE "$attrib"; then say "a tool attribution line"; fi
+          exit $fail
