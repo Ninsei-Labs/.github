@@ -56,11 +56,26 @@ A test is worth having when it fails on the mistake it is there to catch. Every 
 ## Running the code
 
 - A grep or regex over source text never replaces running the code. It checks how the code is written, not
-  what it does, so it passes on wrong code that matches and fails on right code that does not.
+  what it does, so it passes on wrong code that matches and fails on right code that does not. A lint rule
+  about how tests are written is a different thing (see Enforcement): it sits beside the run, never in its place.
 - No sleeps and no wall-clock timing. Inject the clock and the time budgets, and wait for a named event. A
   test that sleeps is slow on a quiet machine and flaky on a busy one.
 - A package's own tests catch its own bugs. A bug caught only by another package's tests is caught by luck:
   that test can change for its own reasons, and the bug then gets through.
+
+## Flaky tests
+
+- A test that passes only when it runs again is broken. CI never retries a failed test to make a run green: a
+  retry hides the fault the first failure showed.
+- A flaky test is fixed, or moved out of the blocking run under a marker that names its issue. A scheduled job
+  keeps running it and reports each failure. No test leaves the blocking run without an issue and an owner.
+
+## Randomness and forks
+
+- A test with random inputs, orders or seeds prints the seed when it fails and reads the seed back from an
+  environment variable, so the failure can be run again from the log.
+- A test against a fork of a live chain pins its block number. Without the pin, a new block changes the result
+  and nobody can rerun yesterday's failure.
 
 ## Breaking runs
 
@@ -79,6 +94,17 @@ Code that moves money, keeps state, holds keys or enforces a protection has test
 - events in every order the API allows;
 - NaN, infinities, negative, zero and huge inputs.
 
+## Contracts that hold funds
+
+- A fuzzing handler calls every external function from several actors, and the invariants are checked after
+  every call: the funds held equal the funds paid in less the funds paid out, and no order ends both claimed and
+  refunded.
+- The fuzzer chooses the time, around every deadline as well as far from it. A harness that only moves the clock
+  to fixed points never reaches the deadline itself.
+- Every revert condition has a test that triggers it with every other condition met, so the test fails for that
+  reason alone. A test that reverts for an earlier reason stays green when the guard it names is gone.
+- Deployment and upgrade run on a fork at a pinned block.
+
 ## Fuzzing
 
 - Every parser of outside input (network answers, files, keys, what people type) has a fuzz target. Its seeds
@@ -92,3 +118,17 @@ Code that moves money, keeps state, holds keys or enforces a protection has test
 A measurement without a pass or fail requirement is a benchmark, not a test. Keep setup out of the measured
 loop, and fail on setup or read errors. Correctness checks of money, recovery and protections stay ordinary
 tests even when they also run a large workload.
+
+## Getting to green
+
+- Never delete, skip or loosen a failing test, or change an expected value, to make a run pass. When behaviour
+  changes on purpose, the same commit changes the expectation and its message says why.
+- Production code has no branch that only tests take: the test then checks a path no user runs.
+
+## Enforcement
+
+- A rule that shows in the text of a test is a lint check that blocks merge: a sleep or a wall clock in a test, a
+  skip without an issue, a parser without a fuzz target. Written rules alone do not hold; the patterns that break
+  tests are easy to miss in a diff.
+- Reviewers check the rest of this file by hand.
+- Lint checks how tests are written. It never replaces running them.
