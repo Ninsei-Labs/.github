@@ -45,6 +45,11 @@ docs: the denylist section of the guide
 - The title has the same form as a commit subject.
 - The description says what changes, why, and how it was checked.
 
+## Tests
+
+What a test must prove, and which tests code that moves money or keeps state must have, is in
+[TESTING.md](TESTING.md). It applies to every repository; each repository's AGENTS.md links to it.
+
 ## Always
 
 - No attribution lines for tools: no `Co-authored-by:` trailer and no "Generated with" line, in commits or
