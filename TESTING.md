@@ -13,6 +13,8 @@ A test is worth having when it fails on the mistake it is there to catch. Every 
   test is needed. Test count and coverage alone do not justify a test.
 - A test for a bug is a property of the bug's class, with the reported case as one input. A test of the one
   scenario passes when the same mistake comes back in another form.
+- A bug fix looks for the other places with the same mistake, and its commit message names each with what was
+  done there.
 - For a bug fix, show that the test fails before the fix and passes after it. For a new test of money, state,
   keys or a protection that has no failing revision, plant the mistake it names in an isolated copy and show
   which assertion fails. Never leave the planted change in the patch. Record the command and the result in the
